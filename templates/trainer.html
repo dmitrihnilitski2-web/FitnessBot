@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title data-i18n="trainer_panel_title">Fitness Hub | Trainer</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="/static/js/i18n.js?v=4"></script>
+
+    <link rel="stylesheet" href="/static/css/style.css?v=25">
+
+    <style>
+        /* Специфічні стилі для Тренера */
+        body.trainer-mode {
+            --btn-color: #32d74b; /* Зелений колір для кнопок тренера */
+            --secondary-bg: #1c1c1e;
+        }
+        .client-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: var(--radius-md);
+            padding: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .client-card:active {
+            background: rgba(255,255,255,0.08);
+        }
+        .c-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+        .c-info {
+            font-size: 13px;
+            color: var(--hint-color);
+            margin-top: 4px;
+        }
+        .invite-box {
+            background: rgba(50, 215, 75, 0.1);
+            border: 1px dashed rgba(50, 215, 75, 0.3);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        /* Стиль для повністю виконаної вправи клієнтом */
+        .ex-row.ex-completed {
+            border-left: 4px solid var(--success);
+            background: rgba(50, 215, 75, 0.05);
+            opacity: 0.7;
+            transition: all 0.3s ease;
+        }
+        .ex-row.ex-completed b {
+            color: var(--success);
+            text-decoration: line-through;
+        }
+        .ex-row.ex-completed span {
+            color: var(--success);
+            opacity: 0.8;
+        }
+    </style>
+</head>
+
+<body class="trainer-mode">
+
+    <div id="loading-view" class="view loader-container">
+        <div class="spinner"></div>
+        <h3 id="loading-text" data-i18n="loading_ai">Завантаження...</h3>
+    </div>
+
+    <div id="team-view" class="view active" style="padding-top: 20px;">
+
+        <button onclick="window.location.href='/'" style="background: rgba(10, 132, 255, 0.15); color: var(--client-blue); box-shadow: none; margin-bottom: 20px;">
+            🏋️ Відкрити мій щоденник (Атлет)
+        </button>
+
+        <div class="header" style="text-align: center; margin-bottom: 30px;">
+            <h2 style="margin: 0; color: var(--btn-color);" data-i18n="trainer_panel_title">Панель Наставника</h2>
+            <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--hint-color);">Керування командою та планами</p>
+        </div>
+
+        <div class="invite-box">
+            <div style="font-size: 40px; margin-bottom: 10px;">🔗</div>
+            <h3 style="margin-top: 0; color: var(--btn-color);" data-i18n="ref_link_title">Запросити клієнта</h3>
+            <p style="font-size: 13px; color: var(--text-color); opacity: 0.8;" data-i18n="ref_link_desc">Надішліть це посилання своєму підопічному. Він автоматично потрапить у вашу команду.</p>
+            <input type="text" id="invite-link-input" readonly style="text-align: center; font-family: monospace; font-size: 12px; color: var(--accent-gold); margin-bottom: 10px; background: rgba(0,0,0,0.2);">
+            <button onclick="copyLink()" style="margin: 0;" data-i18n="btn_copy_link">📋 Скопіювати посилання</button>
+        </div>
+
+        <h3 data-i18n="tab_clients">Ваші Клієнти</h3>
+        <div id="clients-list">
+            <div class="spinner" style="margin: 20px auto; border-left-color: var(--btn-color);"></div>
+        </div>
+    </div>
+
+    <div id="client-detail-view" class="view" style="padding-top: 20px;">
+        <button class="secondary" onclick="showView('team-view')" style="width: auto; padding: 8px 15px; margin-bottom: 20px;" data-i18n="btn_back_to_list">⬅️ Назад до списку</button>
+
+        <h2 id="cd-name" style="margin-top: 0; margin-bottom: 5px;">Ім'я Клієнта</h2>
+        <div style="font-size: 14px; color: var(--hint-color); margin-bottom: 20px;"><span data-i18n="client_goal">Ціль</span>: <span id="cd-goal" style="color: var(--accent-gold); font-weight: bold;">...</span></div>
+
+        <div class="day-tabs" style="display: flex; margin-bottom: 20px;">
+            <div class="day-tab active" id="tab-btn-info" onclick="switchClientTab('info')" data-i18n="nav_data">Інфо та Їжа</div>
+            <div class="day-tab" id="tab-btn-plan" onclick="switchClientTab('plan')" data-i18n="nav_plan">Тренування</div>
+        </div>
+
+        <div id="c-tab-info" class="c-tab active">
+
+            <div class="card" style="margin-bottom: 15px;">
+                <h3 style="margin-top: 0;">Фізичні дані</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; font-size: 14px;">
+                    <div style="width: 45%;">Вага: <b id="c-weight">...</b></div>
+                    <div style="width: 45%;">Ціль: <b id="c-target" style="color: var(--accent-gold);">...</b></div>
+                    <div style="width: 45%;">Зріст: <b id="c-height">...</b></div>
+                    <div style="width: 45%;">Вік: <b id="c-age">...</b></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top: 0; color: var(--danger);" data-i18n="client_food_prefs">⚠️ Алергії та Вподобання</h3>
+                <p id="cd-allergies" style="font-size: 14px; color: var(--text-color); white-space: pre-wrap;">Завантаження...</p>
+            </div>
+
+            <div class="card" style="margin-top: 15px;">
+                <h3 style="margin-top: 0; color: var(--btn-color);" data-i18n="client_write_diet">🍏 Раціон для клієнта</h3>
+                <p style="font-size: 12px; color: var(--hint-color); margin-top: 0;">Цей текст клієнт побачить у своєму щоденнику харчування.</p>
+                <textarea id="t-nutrition-input" rows="5" placeholder="Напишіть тут план харчування (напр: Сніданок - вівсянка 100г...)"></textarea>
+                <button onclick="saveNutritionPlan()" style="margin-top: 10px;" id="btn-save-nutri" data-i18n="btn_save_diet">💾 Зберегти раціон</button>
+            </div>
+
+            <div class="card" style="margin-top: 15px;">
+                <h3 style="margin-top: 0;" data-i18n="title_nutrition">Сьогоднішнє харчування</h3>
+                <div style="font-size: 24px; font-weight: bold; margin-bottom: 15px;">🔥 <span id="t-cal-consumed">0</span> ккал</div>
+                <div id="t-food-logs"></div>
+            </div>
+
+            <div id="client-checkin-card" class="card" style="margin-top: 15px; border: 1px solid var(--accent-gold); display: none;">
+                <h3 style="margin-top: 0; color: var(--accent-gold);">📊 Чек-ін за сьогодні</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; font-size: 14px;">
+                    <div style="width: 45%;">Сон: <b id="chk-val-sleep">...</b></div>
+                    <div style="width: 45%;">Енергія: <b id="chk-val-energy">...</b></div>
+                    <div style="width: 45%;">Стрес: <b id="chk-val-stress">...</b></div>
+                    <div style="width: 45%;">Біль: <b id="chk-val-soreness">...</b></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="c-tab-plan" class="c-tab" style="display: none;">
+            <div class="card" style="text-align: center;">
+                <p style="margin-top: 0; font-size: 14px; color: var(--hint-color);">Поточний план: <b id="cd-plan-status" style="color: var(--text-color);">Завантаження...</b></p>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="generatePlanForClient()" style="flex: 1; font-size: 13px; padding: 10px;" data-i18n="btn_generate">🧠 ШІ Генерація</button>
+                    <button class="secondary" onclick="createManualPlan()" style="flex: 1; font-size: 13px; padding: 10px;">✍️ Створити вручну</button>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 25px;">Програма клієнта</h3>
+
+            <div id="trainer-day-tabs" class="day-tabs" style="display: none;"></div>
+
+            <div id="t-workout-container" style="padding-bottom: 40px;"></div>
+        </div>
+    </div>
+
+    <div id="t-edit-exercise-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="t-edit-ex-title" style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">Редагувати вправу</h3>
+            <input type="hidden" id="t-edit-ex-day">
+            <input type="hidden" id="t-edit-ex-index">
+
+            <label>Назва вправи (або тип кардіо)</label>
+            <input type="text" id="t-edit-ex-name" placeholder="Напр: Присідання або Біг на доріжці">
+
+            <label>Кількість підходів</label>
+            <input type="text" id="t-edit-ex-sets" placeholder="Напр: 4 (або 1 для кардіо)">
+
+            <label>Повторення / Час / RPE</label>
+            <input type="text" id="t-edit-ex-reps" placeholder="Напр: 10 повт. або 20 хвилин">
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="submitTrainerEditExercise()" style="margin-top: 0; flex: 3;" data-i18n="btn_save">💾 Зберегти</button>
+                <button id="t-btn-delete-ex" class="action-btn delete" onclick="deleteTrainerExercise()" style="flex: 1; height: auto;">🗑️</button>
+            </div>
+            <button class="action-btn delete" style="width: 100%; border-radius: 12px; margin-top: 10px; font-size: 16px; font-weight: bold;" onclick="closeModal('t-edit-exercise-modal')" data-i18n="btn_cancel">Скасувати</button>
+        </div>
+    </div>
+
+    <div id="exercise-info-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="info-modal-title" style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; color: var(--btn-color);">Назва вправи</h3>
+
+            <div style="margin-bottom: 15px;">
+                <span style="font-size: 12px; color: var(--hint-color); text-transform: uppercase; font-weight: bold;">🎯 Цільові м'язи:</span>
+                <div id="info-modal-muscles" style="font-size: 14px; color: var(--text-color); margin-top: 4px; font-weight: bold;">Завантаження...</div>
+            </div>
+
+            <div style="margin-bottom: 20px; background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px;">
+                <span style="font-size: 12px; color: var(--hint-color); text-transform: uppercase; font-weight: bold;">📖 Інструкція:</span>
+                <div id="info-modal-instruction" style="font-size: 14px; color: var(--text-color); margin-top: 8px; line-height: 1.5; white-space: pre-wrap;">ШІ аналізує біомеханіку вправи...</div>
+            </div>
+
+            <a id="btn-youtube-link" href="#" target="_blank" style="display: none; background: #FF0000; color: #FFF; text-align: center; padding: 14px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 16px; margin-bottom: 10px; justify-content: center; align-items: center; gap: 8px;">
+                🎥 YouTube
+            </a>
+
+            <button class="action-btn delete" style="width: 100%; border-radius: 12px; font-size: 16px; font-weight: bold;" onclick="closeModal('exercise-info-modal')" data-i18n="btn_close">Закрити</button>
+        </div>
+    </div>
+
+    <script src="/static/js/trainer.js?v=10" defer></script>
+
+</body>
+</html>
