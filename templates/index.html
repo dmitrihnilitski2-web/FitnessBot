@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fitness Hub Pro</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <script src="/static/js/i18n.js?v=8"></script>
+
+    <link rel="stylesheet" href="/static/css/style.css?v=52">
+</head>
+<body>
+
+    <div id="custom-cursor"></div>
+
+    <div id="loading-view" class="view active loader-container">
+        <div class="spinner"></div>
+        <h3 id="loading-text" data-i18n="loading_ai" style="color: var(--text-color);">Підготовка Хабу...</h3>
+    </div>
+
+    <div id="form-view" class="view">
+        <h2 class="reveal" style="margin-top: 20px;" data-i18n="title_create_profile">Створити Профіль</h2>
+        <p class="reveal" style="color: var(--hint-color); font-size: 14px; margin-bottom: 20px;" data-i18n="desc_create_profile">Система індивідуально розрахує персональний макро- та мікроцикл на основі ваших даних.</p>
+
+        <div class="reveal">
+            <label data-i18n="label_name">Ім'я</label>
+            <input type="text" id="user_name" placeholder="Як до вас звертатися?" data-i18n-placeholder="placeholder_name">
+        </div>
+
+        <div class="reveal" style="display: flex; gap: 15px;">
+            <div style="flex: 1;">
+                <label data-i18n="label_gender">Стать</label>
+                <select id="gender" onchange="if(typeof toggleCycleContainer === 'function') toggleCycleContainer('gender', 'cycle_container')">
+                    <option value="male" data-i18n="gender_male">Чоловіча</option>
+                    <option value="female" data-i18n="gender_female">Жіноча</option>
+                </select>
+            </div>
+            <div style="flex: 1;">
+                <label data-i18n="label_age">Вік</label>
+                <input type="number" id="age" placeholder="Років" data-i18n-placeholder="placeholder_age">
+            </div>
+        </div>
+
+        <div id="cycle_container" class="card reveal" style="display: none; background: rgba(255, 45, 85, 0.05); border: 1px dashed rgba(255, 45, 85, 0.3); margin-top: 15px;">
+            <label style="color: #ff2d55; margin-top: 0;" data-i18n="cycle_start_label">Перший день ост. менструації</label>
+            <input type="date" id="cycle_start_date">
+            <label style="color: #ff2d55;" data-i18n="cycle_length_label">Середня тривалість циклу (днів)</label>
+            <input type="number" id="cycle_length" value="28">
+        </div>
+
+        <div class="reveal" style="display: flex; gap: 15px;">
+            <div style="flex: 1;">
+                <label data-i18n="label_height">Зріст (см)</label>
+                <input type="number" id="height" placeholder="Напр: 175">
+            </div>
+            <div style="flex: 1;">
+                <label data-i18n="label_weight">Вага (кг)</label>
+                <input type="number" id="weight" placeholder="Напр: 70" step="0.1">
+            </div>
+        </div>
+
+        <div class="reveal">
+            <label data-i18n="label_goal">Ваша головна ціль</label>
+            <select id="goal" onchange="if(typeof toggleCustomGoal === 'function') toggleCustomGoal('goal', 'custom-goal-container', 'custom_goal')">
+                <option value="lose" data-i18n="goal_lose">Схуднення / Сушка 🔥</option>
+                <option value="maintain" selected data-i18n="goal_maintain">Підтримка форми ⚖️</option>
+                <option value="gain" data-i18n="goal_gain">Набір м'язової маси 💪</option>
+                <option value="strength" data-i18n="goal_strength">Максимальна сила 🏋️</option>
+                <option value="endurance" data-i18n="goal_endurance">Витривалість 🏃</option>
+                <option value="competition" data-i18n="goal_competition">🏆 Підготовка до змагань</option>
+                <option value="custom" data-i18n="goal_custom">Своя специфічна ціль 🎯</option>
+            </select>
+        </div>
+
+        <div id="custom-goal-container" class="reveal" style="display: none;">
+            <label data-i18n="label_custom_goal">Опишіть вашу ціль детально</label>
+            <input type="text" id="custom_goal" placeholder="Напр: Хочу навчитися підтягуватися 20 разів">
+        </div>
+
+        <div id="competition-container" class="card reveal" style="display: none; background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.3); margin-top: 15px;">
+            <label style="color: var(--accent-gold); margin-top: 0;" data-i18n="comp_sport_label">Ваш вид спорту</label>
+            <input type="text" id="comp_sport" placeholder="Напр: Пауерліфтинг, Кросфіт">
+            <label style="color: var(--accent-gold);" data-i18n="comp_date_label">Дата змагань (Пік форми)</label>
+            <input type="date" id="comp_date">
+        </div>
+
+        <div class="reveal">
+            <label data-i18n="label_target_weight">Цільова вага (кг)</label>
+            <input type="number" id="target_weight" placeholder="Скільки хочете важити?" step="0.1">
+
+            <label data-i18n="label_activity">Рівень фізичної активності</label>
+            <select id="activity">
+                <option value="sedentary" data-i18n="act_sedentary">Сидячий (офіс)</option>
+                <option value="light" data-i18n="act_light">Легкий (1-3 рази/тиж)</option>
+                <option value="medium" selected data-i18n="act_medium">Середній (3-5 разів/тиж)</option>
+                <option value="active" data-i18n="act_active">Високий (6-7 разів/тиж)</option>
+                <option value="very_active" data-i18n="act_very_active">Дуже високий (фізична робота)</option>
+            </select>
+
+            <label data-i18n="label_notes">Особливості (травми, побажання)</label>
+            <textarea id="notes" rows="3" placeholder="Наприклад: болить праве коліно..."></textarea>
+
+            <button id="submit-btn" onclick="submitProfile()" style="margin-bottom: 30px;" data-i18n="btn_generate">🚀 Згенерувати Програму</button>
+        </div>
+    </div>
+
+    <div id="profile-view" class="view">
+
+        <div class="reveal" style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+            <button id="btn-admin-panel" onclick="window.location.href='/admin'" style="display: none; margin:0; background: rgba(191, 90, 242, 0.15); color: #bf5af2; border: 1px solid rgba(191, 90, 242, 0.3); box-shadow: none;" data-i18n="btn_admin">
+                ⚙️ Супер Адмін Панель
+            </button>
+
+            <div id="trainer-switch-container" style="display: none;">
+                <button onclick="window.location.href='/trainer'" style="margin:0; background: rgba(0, 234, 102, 0.15); color: var(--success); border: 1px solid rgba(0, 234, 102, 0.3); box-shadow: none; width: 100%;" data-i18n="btn_trainer_panel">
+                    👨‍🏫 Відкрити панель Тренера
+                </button>
+            </div>
+
+            <button id="btn-become-trainer" onclick="if(typeof registerAsTrainer === 'function') registerAsTrainer()" style="display: none; margin:0; background: rgba(212, 175, 55, 0.15); color: var(--accent-gold); border: 1px solid rgba(212, 175, 55, 0.3); box-shadow: none;" data-i18n="btn_trainer">
+                🎓 Стати Тренером
+            </button>
+        </div>
+
+        <div class="reveal" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+            <h2 style="margin: 0;">
+                <span data-i18n="greeting">Привіт</span>, <span id="prof-name">Атлет</span>!
+                <span id="prof-mini-lvl" style="color:var(--accent-gold); font-size:18px;"></span>
+                <span id="prof-mini-streak" style="font-size: 16px; margin-left: 5px;" title="Ваш вогник (Стрік)">🔥 0</span>
+            </h2>
+            <button onclick="openEditProfileModal()" style="width: auto; padding: 8px 20px; margin: 0; font-size: 12px; background: transparent; border: 1px solid var(--border-color); color: var(--text-color);" data-i18n="btn_edit_data">Дані</button>
+        </div>
+
+        <div class="reveal" id="prof-trainer-status" style="display: none; background: rgba(10, 132, 255, 0.1); color: var(--client-blue); padding: 8px 16px; border-radius: 50px; font-size: 12px; font-weight: bold; margin-top: 12px; border: 1px solid rgba(10, 132, 255, 0.2);">
+            В команді тренера
+        </div>
+
+        <div class="card comp-card reveal" style="margin-top: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin-top:0; color: var(--accent-gold); margin-bottom: 0;" data-i18n="title_my_comp">🏆 Мої змагання</h3>
+                <button onclick="openQuickCompModal()" style="width: auto; padding: 6px 14px; margin: 0; font-size: 11px; background: rgba(212, 175, 55, 0.15); color: var(--accent-gold); border: none;" data-i18n="btn_settings">Налаштувати</button>
+            </div>
+
+            <div id="comp-active-view" style="display: none; margin-top: 15px;">
+                <div style="font-size: 22px; font-weight: 900;" id="comp-sport-display">Спорт</div>
+                <div style="font-size: 14px; color: var(--hint-color); margin-top: 5px;"><span data-i18n="comp_date_short">Дата:</span> <b id="comp-date-display" style="color: var(--text-color);">...</b></div>
+                <div style="margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.4); border-radius: 12px; text-align: center; border: 1px solid var(--border-color);">
+                    <div style="font-size: 18px; font-weight: 700; color: var(--btn-color);" id="comp-countdown-display">⏳ ...</div>
+                </div>
+            </div>
+
+            <div id="comp-empty-view" style="margin-top: 15px;">
+                <p style="font-size: 14px; color: var(--hint-color); margin: 0;" data-i18n="comp_empty_desc">Ви не готуєтесь до змагань. Бажаєте побудувати професійний макроцикл для виходу на пік форми?</p>
+            </div>
+        </div>
+
+        <h3 class="reveal" style="margin-top: 32px; margin-bottom: 16px;" data-i18n="title_phys_data">Фізичні дані</h3>
+        <div class="profile-grid reveal">
+            <div class="profile-stat"><div class="stat-value" id="prof-weight">0 кг</div><div class="stat-label" data-i18n="stat_cur_weight" style="color: var(--hint-color); font-size: 12px; text-transform: uppercase;">Поточна вага</div></div>
+            <div class="profile-stat"><div class="stat-value" id="prof-target" style="color: var(--accent-gold);">0 кг</div><div class="stat-label" data-i18n="stat_target_weight" style="color: var(--hint-color); font-size: 12px; text-transform: uppercase;">Цільова вага</div></div>
+            <div class="profile-stat"><div class="stat-value" id="prof-height">0 см</div><div class="stat-label" data-i18n="stat_height" style="color: var(--hint-color); font-size: 12px; text-transform: uppercase;">Зріст</div></div>
+            <div class="profile-stat"><div class="stat-value" id="prof-age">0</div><div class="stat-label" data-i18n="stat_age" style="color: var(--hint-color); font-size: 12px; text-transform: uppercase;">Вік</div></div>
+        </div>
+
+        <div class="card reveal" style="margin-top: 24px;">
+            <div style="margin-bottom: 12px; display: flex; justify-content: space-between;"><span style="color: var(--hint-color); font-size: 14px;" data-i18n="stat_cur_goal">Поточна ціль:</span> <b id="prof-goal">...</b></div>
+            <div style="display: flex; justify-content: space-between;"><span style="color: var(--hint-color); font-size: 14px;" data-i18n="stat_activity">Активність:</span> <b id="prof-activity">...</b></div>
+        </div>
+
+        <div class="card reveal" style="margin-top: 24px; border: 1px dashed var(--client-blue); background: rgba(10, 132, 255, 0.05);">
+            <h3 style="margin-top:0; color: var(--client-blue);">✨ <span data-i18n="title_ai_adapt">ШІ-Адаптація</span></h3>
+            <p style="font-size: 13px; color: var(--hint-color); margin-top: 0; margin-bottom: 16px;" data-i18n="desc_ai_adapt">Отримали травму? Змінився графік? Напишіть сюди, і ШІ миттєво адаптує ваш план.</p>
+            <textarea id="smart-rebuild-text" rows="3" placeholder="Напр: Я розтягнув спину..."></textarea>
+            <button id="btn-smart-rebuild" onclick="smartRebuildPlan()" style="margin-top:16px; background: rgba(10, 132, 255, 0.15); color: var(--client-blue); border: 1px solid rgba(10, 132, 255, 0.3);" data-i18n="btn_rebuild_plan">🔄 Перебудувати план</button>
+        </div>
+
+        <div class="card reveal" style="margin-top: 24px; margin-bottom: 40px;">
+            <h3 style="margin-top:0; margin-bottom: 8px;" data-i18n="client_food_prefs">Вподобання та Алергії</h3>
+            <p style="font-size: 13px; color: var(--hint-color); margin-top: 0; margin-bottom: 16px;" data-i18n="desc_allergies">Опишіть, що ви не їсте, щоб тренер склав ідеальний раціон.</p>
+            <textarea id="food-prefs-input" rows="3" placeholder="Напр: Алергія на арахіс..."></textarea>
+            <button class="secondary" onclick="saveFoodPrefs()" style="margin-top:16px;" data-i18n="btn_save_for_coach">Зберегти для тренера</button>
+        </div>
+    </div>
+
+    <div id="dashboard-view" class="view">
+        <h2 id="plan-title" class="reveal" style="margin-top:20px;" data-i18n="title_plan">Ваш План</h2>
+
+        <div id="dashboard-comp-banner" class="card reveal" style="display: none; background: rgba(212, 175, 55, 0.1); border: 1px dashed var(--accent-gold); margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 11px; color: var(--accent-gold); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;"><span data-i18n="dash_comp_prep">Підготовка до:</span></div>
+                    <div style="font-size: 18px; font-weight: 900; margin-top: 4px;" id="dash-comp-sport">Спорт</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 20px; font-weight: 700; color: var(--btn-color);" id="dash-comp-days">⏳ --</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="ai-insight-box" class="card reveal" style="display: none; border-color: var(--border-hover);">
+            <div style="font-weight: 700; margin-bottom: 8px; color: var(--text-color); font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;"><span data-i18n="ai_insight_title">Тренувальний цикл</span></div>
+            <div id="plan-explanation" style="font-size: 15px; color: var(--hint-color); white-space: pre-wrap;"></div>
+        </div>
+
+        <div id="ai-projection-box" class="card reveal" style="display: none; border-color: var(--accent-gold); background: rgba(212, 175, 55, 0.05);">
+            <div style="font-weight: 700; margin-bottom: 8px; color: var(--accent-gold); font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;"><span data-i18n="ai_proj_title">Розрахунковий прогноз</span></div>
+            <div id="plan-projections" style="font-size: 15px; color: var(--text-color); white-space: pre-wrap;"></div>
+        </div>
+
+        <div id="day-tabs-container" class="day-tabs reveal" style="display: none;"></div>
+
+        <div id="checkin-card" class="card reveal" style="border: 1px solid var(--btn-color); display: none;">
+            <h3 style="margin-top: 0; color: var(--btn-color); font-size: 18px;"><span data-i18n="chk_title">Як ви себе почуваєте?</span></h3>
+            <p style="font-size: 14px; color: var(--hint-color); margin-bottom: 24px; line-height: 1.4;"></p>
+
+            <label data-i18n="chk_sleep">Сон (1 - жахливо, 10 - ідеально)</label>
+            <input type="range" id="chk-sleep" min="1" max="10" value="5">
+
+            <label data-i18n="chk_energy">Енергія (1 - розбитий, 10 - повен сил)</label>
+            <input type="range" id="chk-energy" min="1" max="10" value="5">
+
+            <label data-i18n="chk_stress">Стрес (1 - дуже низький, 10 - паніка)</label>
+            <input type="range" id="chk-stress" min="1" max="10" value="5">
+
+            <label data-i18n="chk_soreness">Біль (1 - нічого, 10 - все болить)</label>
+            <input type="range" id="chk-soreness" min="1" max="10" value="5">
+
+            <button onclick="submitCheckin()" id="btn-checkin" style="margin-top: 32px;" data-i18n="btn_adapt_workout">Адаптувати тренування</button>
+        </div>
+
+        <div id="coach-message-box" class="card reveal" style="display: none; background: rgba(0, 234, 102, 0.05); border: 1px dashed var(--btn-color);">
+            <div style="font-weight: 700; margin-bottom: 8px; color: var(--btn-color); font-size: 14px; text-transform: uppercase;"><span data-i18n="msg_from_coach">Повідомлення Тренера</span></div>
+            <div id="coach-message-text" style="font-size: 15px; color: var(--text-color); white-space: pre-wrap;"></div>
+        </div>
+
+        <div id="workout-container"></div>
+
+        <div id="finish-workout-wrapper" class="reveal" style="display: none; padding-bottom: 100px; margin-top: 24px;">
+            <button id="btn-finish-workout" onclick="if(typeof openWorkoutSummary === 'function') openWorkoutSummary()" style="background: var(--accent-gold); color: #000; box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);" data-i18n="btn_finish_workout">🏆 Завершити тренування</button>
+        </div>
+    </div>
+
+    <div id="cycle-view" class="view" style="padding-bottom: 100px;">
+        <h2 class="reveal" style="margin-top:20px;" data-i18n="title_cycle">Ваш Цикл</h2>
+
+        <div class="card reveal" style="text-align: center; border: none; background: transparent;">
+            <div id="cycle-ring-circle" style="width: 220px; height: 220px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.05); margin: 0 auto 30px auto; display: flex; align-items: center; justify-content: center; position: relative; transition: all 1s ease;">
+                <div id="cycle-ring-text" style="text-align: center; line-height: 1.3;">Day 1</div>
+            </div>
+            <button id="btn-log-period" onclick="logPeriodStart()" style="background: rgba(255, 45, 85, 0.15); color: #ff2d55; border: 1px solid rgba(255, 45, 85, 0.3);" data-i18n="btn_log_period">Відмітити початок циклу</button>
+        </div>
+
+        <div class="card reveal">
+            <h3 style="margin-top:0; font-size: 18px;" data-i18n="title_symptoms">Симптоми сьогодні</h3>
+
+            <p style="font-size: 12px; color: var(--hint-color); margin-bottom: 12px; margin-top: 20px; text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="symp_flow">Виділення</p>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div class="symptom-chip" data-category="flow" data-value="light" onclick="toggleSymptom(this, 'flow', 'light')" style="flex:1; text-align:center; padding: 12px 0; background: rgba(255,255,255,0.05); border-radius: 12px; font-size: 14px; border: 1px solid var(--border-color);" data-i18n="symp_light">Легкі</div>
+                <div class="symptom-chip" data-category="flow" data-value="medium" onclick="toggleSymptom(this, 'flow', 'medium')" style="flex:1; text-align:center; padding: 12px 0; background: rgba(255,255,255,0.05); border-radius: 12px; font-size: 14px; border: 1px solid var(--border-color);" data-i18n="symp_medium">Середні</div>
+                <div class="symptom-chip" data-category="flow" data-value="heavy" onclick="toggleSymptom(this, 'flow', 'heavy')" style="flex:1; text-align:center; padding: 12px 0; background: rgba(255,255,255,0.05); border-radius: 12px; font-size: 14px; border: 1px solid var(--border-color);" data-i18n="symp_heavy">Рясні</div>
+            </div>
+
+            <p style="font-size: 12px; color: var(--hint-color); margin-bottom: 12px; margin-top: 20px; text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="symp_pain">Біль / Спазми</p>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div class="symptom-chip" data-category="pain" data-value="0" onclick="toggleSymptom(this, 'pain', '0')" style="flex:1; text-align:center; padding: 12px 0; background: rgba(255,255,255,0.05); border-radius: 12px; font-size: 14px; border: 1px solid var(--border-color);" data-i18n="symp_none">Немає</div>
+                <div class="symptom-chip" data-category="pain" data-value="1" onclick="toggleSymptom(this, 'pain', '1')" style="flex:1; text-align:center; padding: 12px 0; background: rgba(255,255,255,0.05); border-radius: 12px; font-size: 14px; border: 1px solid var(--border-color);" data-i18n="symp_mild">Легкий</div>
+                <div class="symptom-chip" data-category="pain" data-value="2" onclick="toggleSymptom(this, 'pain', '2')" style="flex:1; text-align:center; padding: 12px 0; background: rgba(255,255,255,0.05); border-radius: 12px; font-size: 14px; border: 1px solid var(--border-color);" data-i18n="symp_severe">Сильний</div>
+            </div>
+
+            <p style="font-size: 12px; color: var(--hint-color); margin-bottom: 12px; margin-top: 20px; text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="symp_mood">Настрій</p>
+            <div style="display: flex; gap: 10px;">
+                <div class="symptom-chip" data-category="mood" data-value="calm" onclick="toggleSymptom(this, 'mood', 'calm')" style="flex:1; text-align:center; padding: 12px 0; background: rgba(255,255,255,0.05); border-radius: 12px; font-size: 14px; border: 1px solid var(--border-color);" data-i18n="symp_calm">Спокійний</div>
+                <div class="symptom-chip" data-category="mood" data-value="sad" onclick="toggleSymptom(this, 'mood', 'sad')" style="flex:1; text-align:center; padding: 12px 0; background: rgba(255,255,255,0.05); border-radius: 12px; font-size: 14px; border: 1px solid var(--border-color);" data-i18n="symp_sad">Сумний</div>
+                <div class="symptom-chip" data-category="mood" data-value="irritated" onclick="toggleSymptom(this, 'mood', 'irritated')" style="flex:1; text-align:center; padding: 12px 0; background: rgba(255,255,255,0.05); border-radius: 12px; font-size: 14px; border: 1px solid var(--border-color);" data-i18n="symp_irritated">Дратівливий</div>
+            </div>
+        </div>
+
+        <div class="card reveal" style="margin-top: 24px; border: 1px dashed #ff2d55; background: rgba(255, 45, 85, 0.05);">
+            <h3 style="margin-top:0; color: #ff2d55; font-size: 16px;">✨ <span data-i18n="title_ai_cycle">Аналіз циклу</span></h3>
+            <p id="cycle-insight-text" style="font-size: 15px; color: var(--text-color); margin-bottom: 0; line-height: 1.5;" data-i18n="loading_ai">Аналізуємо вплив гормонів на тренування...</p>
+        </div>
+    </div>
+
+    <div id="nutrition-view" class="view" style="padding-bottom: 100px;">
+        <h2 class="reveal" style="margin-top:20px;" data-i18n="title_nutrition">Харчування</h2>
+
+        <div class="card reveal" id="coach-nutrition-card" style="display:none; border: 1px solid rgba(10, 132, 255, 0.3); background: rgba(10, 132, 255, 0.05);">
+            <h3 style="color: var(--client-blue); margin-top:0; font-size: 16px;"><span data-i18n="title_coach_diet">Раціон від тренера</span></h3>
+            <p id="coach-nutrition-plan" style="white-space: pre-wrap; font-size: 15px; color: var(--text-color); margin-bottom: 0; line-height: 1.5;"></p>
+        </div>
+
+        <div class="card reveal" style="text-align: center; padding: 40px 20px;">
+            <div id="cal-status" style="display: inline-block; padding: 6px 16px; border-radius: 50px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 20px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color);">...</div>
+            <div id="cal-main" style="font-size: 64px; font-weight: 900; letter-spacing: -2px; line-height: 1; font-family: 'Space Grotesk', sans-serif;">0 <span style="font-size: 24px; color: var(--hint-color); font-weight: 500;">/ 0</span></div>
+            <div style="font-size: 13px; color: var(--hint-color); margin-top: 10px; font-weight: 500;" data-i18n="card_macros">калорій спожито</div>
+
+            <div class="nutri-grid" style="margin-top: 40px;">
+                <div class="nutri-item"><span style="color: var(--hint-color); margin-bottom: 6px;" data-i18n="macro_protein">Білки</span><span id="p-val" class="nutri-val" style="font-size: 16px; font-weight: 700;">0 / 0 г</span><div class="progress-circle"><div id="p-bar" class="progress-circle-fill" style="background: var(--text-color);"></div></div></div>
+                <div class="nutri-item"><span style="color: var(--hint-color); margin-bottom: 6px;" data-i18n="macro_fats">Жири</span><span id="f-val" class="nutri-val" style="font-size: 16px; font-weight: 700;">0 / 0 г</span><div class="progress-circle"><div id="f-bar" class="progress-circle-fill" style="background: var(--accent-gold);"></div></div></div>
+                <div class="nutri-item"><span style="color: var(--hint-color); margin-bottom: 6px;" data-i18n="macro_carbs">Вуглеводи</span><span id="c-val" class="nutri-val" style="font-size: 16px; font-weight: 700;">0 / 0 г</span><div class="progress-circle"><div id="c-bar" class="progress-circle-fill" style="background: var(--client-blue);"></div></div></div>
+            </div>
+        </div>
+
+        <div class="card reveal" style="margin-top: 24px; text-align: center;">
+            <h3 style="margin-top: 0; font-size: 16px; color: var(--hint-color);" data-i18n="card_water">Водний баланс</h3>
+            <div style="font-size: 32px; font-weight: 900; margin-bottom: 24px; color: var(--client-blue); font-family: 'Space Grotesk', sans-serif;" id="water-val">0 мл</div>
+            <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                <div class="water-glass" id="glass-1" onclick="addWater(250)"></div><div class="water-glass" id="glass-2" onclick="addWater(250)"></div><div class="water-glass" id="glass-3" onclick="addWater(250)"></div><div class="water-glass" id="glass-4" onclick="addWater(250)"></div>
+                <div class="water-glass" id="glass-5" onclick="addWater(250)"></div><div class="water-glass" id="glass-6" onclick="addWater(250)"></div><div class="water-glass" id="glass-7" onclick="addWater(250)"></div><div class="water-glass" id="glass-8" onclick="addWater(250)"></div>
+            </div>
+        </div>
+
+        <div class="card reveal" style="margin-top: 24px; background: rgba(191, 90, 242, 0.05); border: 1px dashed rgba(191, 90, 242, 0.3);">
+            <h3 style="margin-top:0; color: #bf5af2; font-size: 16px;">✨ <span data-i18n="title_ai_fridge">ШІ-Кухар</span></h3>
+            <p style="font-size: 14px; color: var(--text-color); margin-top: 0; margin-bottom: 16px; line-height: 1.4;" data-i18n="desc_ai_fridge">Напишіть, які продукти у вас є, і ШІ придумає рецепт під ваш залишок калорій.</p>
+            <input type="text" id="fridge-ingredients" placeholder="Що є в холодильнику?" data-i18n-placeholder="placeholder_fridge" style="border-bottom-color: rgba(191, 90, 242, 0.3);">
+            <button onclick="if(typeof generateFridgeRecipe === 'function') generateFridgeRecipe()" id="btn-fridge" style="margin-top: 20px; background: rgba(191, 90, 242, 0.15); color: #bf5af2; border: 1px solid rgba(191, 90, 242, 0.3);" data-i18n="btn_fridge_gen">Придумати рецепт</button>
+        </div>
+
+        <div class="card reveal" style="margin-top: 24px; text-align: center;">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <input type="file" id="food-image-upload" accept="image/*" style="display: none;" onchange="analyzeFoodImage(event)">
+                <label for="food-image-upload" id="food-upload-label" style="margin-top: 0; display: block; width: 100%; box-sizing: border-box; padding: 16px; background: var(--text-color); color: #000; border-radius: 50px; font-weight: 700; font-size: 15px; cursor: pointer; text-transform: uppercase; font-family: 'Space Grotesk', sans-serif;" data-i18n="btn_photo_food">📸 Аналіз по фото</label>
+
+                <button id="btn-start-scan" class="secondary" onclick="if(typeof startWebScanner === 'function') startWebScanner();" style="margin: 0; padding: 16px; border-radius: 50px;" data-i18n="btn_scan_barcode">🔍 Сканувати штрих-код</button>
+
+                <div id="reader" style="display: none; width: 100%; border-radius: 20px; overflow: hidden; margin-top: 10px; border: 1px solid var(--border-color);"></div>
+                <button id="btn-stop-scan" onclick="if(typeof stopWebScanner === 'function') stopWebScanner();" style="display: none; margin-top: 10px; background: rgba(255, 45, 85, 0.1); color: var(--danger); border: 1px solid rgba(255, 45, 85, 0.3);" data-i18n="btn_close_scanner">Закрити сканер</button>
+                <button id="btn-manual-barcode" onclick="if(typeof manualBarcodePrompt === 'function') manualBarcodePrompt();" style="display: none; margin-top: 10px; background: transparent; color: var(--hint-color); border: none; text-decoration: underline;" data-i18n="btn_manual_barcode">Ввести цифри вручну</button>
+            </div>
+        </div>
+
+        <h3 class="reveal" style="margin-top: 40px; margin-bottom: 16px; font-size: 18px;" data-i18n="title_add_food_manual">Додати вручну</h3>
+        <div class="card reveal" style="display: flex; flex-wrap: wrap; gap: 15px;">
+            <div style="width: 100%;"><label style="margin-top:0;" data-i18n="label_dish_name">Назва страви</label><input type="text" id="food-name" placeholder="Напр: Вівсянка з бананом"></div>
+            <div style="width: calc(33.3% - 10px);"><label style="margin-top:0;" data-i18n="label_weight_g">Вага (г)</label><input type="number" id="food-weight"></div>
+            <div style="width: calc(33.3% - 10px);"><label style="margin-top:0;" data-i18n="label_cals">Калорії</label><input type="number" id="food-cal"></div>
+            <div style="width: calc(33.3% - 10px);"><label style="margin-top:0;" data-i18n="label_p">Білки</label><input type="number" id="food-prot"></div>
+            <div style="width: calc(50% - 7.5px);"><label style="margin-top:0;" data-i18n="label_f">Жири</label><input type="number" id="food-fat"></div>
+            <div style="width: calc(50% - 7.5px);"><label style="margin-top:0;" data-i18n="label_c">Вуглеводи</label><input type="number" id="food-carb"></div>
+            <button onclick="addManualFood()" style="margin-top: 10px; width: 100%; background: var(--text-color); color: #000;" data-i18n="btn_add_food">Записати</button>
+        </div>
+
+        <h3 class="reveal" style="margin-top: 40px; margin-bottom: 16px; font-size: 18px;" data-i18n="title_history_today">Історія за сьогодні</h3>
+        <div id="food-logs-container" class="reveal"></div>
+    </div>
+
+    <div id="progress-view" class="view" style="padding-bottom: 100px;">
+        <h2 class="reveal" data-i18n="title_analytics">Аналітика Тіла</h2>
+
+        <div class="card reveal" style="padding: 30px 15px;">
+            <h3 style="margin-top:0; color: var(--text-color); text-align: center; font-size: 16px; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="title_muscle_recovery">Відновлення м'язів</h3>
+
+            <div class="muscle-map-container" style="display: flex; gap: 15px; justify-content: center; overflow: hidden; background: transparent;">
+                <div style="position: relative; width: 48%; max-width: 180px;">
+                    <svg id="svg-body-front" viewBox="0 0 750 1500" style="width: 100%; height: auto; filter: drop-shadow(0px 0px 10px rgba(255,255,255,0.05));"></svg>
+                    <span style="position: absolute; bottom: -15px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--hint-color); font-weight: 700; letter-spacing: 0.1em;" data-i18n="map_front">ПЕРЕД</span>
+                </div>
+                <div style="position: relative; width: 48%; max-width: 180px;">
+                    <svg id="svg-body-back" viewBox="700 0 750 1500" style="width: 100%; height: auto; filter: drop-shadow(0px 0px 10px rgba(255,255,255,0.05));"></svg>
+                    <span style="position: absolute; bottom: -15px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--hint-color); font-weight: 700; letter-spacing: 0.1em;" data-i18n="map_back">ЗАД</span>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-around; margin-top: 40px; font-size: 12px; font-weight: 500; color: var(--hint-color);">
+                <span style="display:flex; align-items:center; gap:6px;"><div style="width:8px; height:8px; border-radius:50%; background:#32d74b; box-shadow: 0 0 8px #32d74b;"></div> <span data-i18n="map_legend_fresh">Свіжі</span></span>
+                <span style="display:flex; align-items:center; gap:6px;"><div style="width:8px; height:8px; border-radius:50%; background:#ffd60a; box-shadow: 0 0 8px #ffd60a;"></div> <span data-i18n="map_legend_process">В процесі</span></span>
+                <span style="display:flex; align-items:center; gap:6px;"><div style="width:8px; height:8px; border-radius:50%; background:#ff453a; box-shadow: 0 0 8px #ff453a;"></div> <span data-i18n="map_legend_tired">Втомлені</span></span>
+            </div>
+        </div>
+
+        <div class="card reveal" style="margin-top: 24px;">
+            <h3 style="margin-top:0; font-size: 16px;" data-i18n="title_weight_chart">Динаміка ваги</h3>
+            <div class="chart-container" style="height: 200px; margin-top: 20px;"><canvas id="weightChart"></canvas></div>
+        </div>
+
+        <div class="card reveal" style="margin-top: 24px;">
+            <h3 style="margin-top: 0; font-size: 16px;" data-i18n="card_measurements">Заміри тіла (см)</h3>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 20px;">
+                <div style="width: calc(50% - 7.5px);"><label style="margin-top:0;" data-i18n="label_waist">Талія</label><input type="number" id="metric-waist" step="0.1"></div>
+                <div style="width: calc(50% - 7.5px);"><label style="margin-top:0;" data-i18n="label_hips">Стегна</label><input type="number" id="metric-hips" step="0.1"></div>
+                <div style="width: calc(50% - 7.5px);"><label style="margin-top:0;" data-i18n="label_chest">Груди</label><input type="number" id="metric-chest" step="0.1"></div>
+                <div style="width: calc(50% - 7.5px);"><label style="margin-top:0;" data-i18n="label_biceps">Біцепс</label><input type="number" id="metric-biceps" step="0.1"></div>
+            </div>
+            <button class="secondary" id="btn-save-metrics" onclick="submitBodyMetrics()" style="margin-top: 24px;" data-i18n="btn_save_metrics">Зберегти заміри</button>
+        </div>
+
+        <div class="card reveal" style="margin-top: 24px;">
+            <h3 style="margin-top:0; font-size: 16px;" data-i18n="title_metrics_chart">Прогрес об'ємів</h3>
+            <div class="chart-container" style="height: 200px; margin-top: 20px;"><canvas id="metricsChart"></canvas></div>
+        </div>
+
+        <div class="card reveal" style="margin-top: 24px;">
+            <h3 style="margin-top:0; font-size: 16px;" data-i18n="title_work_weight_chart">Прогрес робочих ваг</h3>
+            <select id="exercise-select" onchange="renderExerciseChart()" style="margin-top: 15px;"></select>
+            <div class="chart-container" style="height: 200px; margin-top: 20px;"><canvas id="exerciseChart"></canvas></div>
+        </div>
+    </div>
+
+    <div id="coach-view" class="view" style="padding-bottom: 100px;">
+        <h2 class="reveal" style="margin-top:20px;" data-i18n="title_coach">Ваш Наставник</h2>
+        <div class="card reveal" style="text-align: center; padding: 40px 20px;">
+            <div style="width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+            </div>
+            <h3 style="margin-top: 0; font-size: 20px;" data-i18n="title_personal_coach">Персональний супровід</h3>
+            <p id="coach-status-text" style="color: var(--hint-color); font-size: 15px; margin-bottom: 30px; line-height: 1.5;" data-i18n="loading_ai">Завантаження даних...</p>
+
+            <button onclick="if(window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.close(); }" style="background: var(--text-color); color: #000; margin-bottom: 15px;" data-i18n="btn_ask_question">Задати питання</button>
+            <button class="secondary" onclick="if(window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.close(); }" data-i18n="btn_send_video">Надіслати відео на розбір</button>
+        </div>
+    </div>
+
+    <div id="gamification-view" class="view" style="padding-bottom: 100px;">
+        <div class="reveal" style="text-align: center; margin-top: 30px; margin-bottom: 40px;">
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 14px; color: var(--hint-color); letter-spacing: 0.1em; text-transform: uppercase;" data-i18n="level_word">РІВЕНЬ</div>
+            <div style="font-size: 80px; font-weight: 900; font-family: 'Space Grotesk', sans-serif; line-height: 1; margin: 10px 0; color: var(--btn-color);" id="game-lvl">1</div>
+            <div style="font-size: 14px; color: var(--text-color);"><span id="game-exp">0</span> <span style="color: var(--hint-color);">/ <span id="game-exp-need">100</span></span></div>
+
+            <div class="progress-circle" style="width: 100%; height: 6px; border-radius: 6px; background: rgba(255,255,255,0.05); margin-top: 15px;">
+                <div id="game-exp-fill" class="progress-circle-fill" style="background: var(--btn-color); transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);"></div>
+            </div>
+        </div>
+
+        <div class="card reveal" style="font-size:14px; color:var(--hint-color); line-height: 1.6;">
+            <b style="color:var(--text-color); display: block; margin-bottom: 10px;" data-i18n="how_to_earn_exp">Як заробляти досвід?</b>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
+                <span data-i18n="exp_rule_1">Виконаний підхід</span> <span style="color: var(--btn-color); font-weight: bold;">+10</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
+                <span data-i18n="exp_rule_2">Запис їжі</span> <span style="color: var(--btn-color); font-weight: bold;">+5</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span data-i18n="exp_rule_3">Чек-ін</span> <span style="color: var(--btn-color); font-weight: bold;">+5</span>
+            </div>
+        </div>
+
+        <div class="card reveal" style="margin-top: 24px; text-align: center; border: 1px dashed #ff9500; background: rgba(255, 149, 0, 0.05);">
+            <h3 style="margin-top:0; font-size: 18px; color: #ff9500;">🔥 Ваші Стріки</h3>
+            <div style="font-size: 48px; font-weight: 900; color: #ff9500;" id="game-streak">0</div>
+            <p style="font-size: 13px; color: var(--hint-color);">Днів поспіль. Не пропускайте тренування або запис їжі, щоб вогник не згас!</p>
+            <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 15px;">
+                <div style="background: rgba(255,255,255,0.05); padding: 10px 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">❄️</span> <b id="game-freezes" style="font-size: 18px; color: var(--text-color);">0</b>
+                </div>
+                <button class="secondary" onclick="if(typeof buyFreeze === 'function') buyFreeze()" style="width: auto; margin: 0; padding: 12px 20px; font-size: 13px; border-color: rgba(10, 132, 255, 0.3); color: var(--client-blue);">Купити заморозку<br><span style="font-size:10px;">(500 EXP)</span></button>
+            </div>
+        </div>
+
+        <h3 class="reveal" style="margin-top:40px; margin-bottom: 20px; font-size: 18px;">🏆 Таблиця лідерів</h3>
+        <div class="reveal" style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button id="btn-tab-global" onclick="if(typeof switchLeaderboard === 'function') switchLeaderboard('global')" style="flex: 1; padding: 10px; font-size: 13px; background: var(--text-color); color: #000;">Глобальний Топ</button>
+            <button id="btn-tab-team" onclick="if(typeof switchLeaderboard === 'function') switchLeaderboard('team')" class="secondary" style="flex: 1; padding: 10px; font-size: 13px;">Моя Команда</button>
+        </div>
+        <div id="leaderboard-container" class="card reveal" style="padding: 10px; min-height: 100px;">
+            <p style="text-align: center; color: var(--hint-color); font-size: 14px;">Завантаження рейтингу...</p>
+        </div>
+
+        <h3 class="reveal" style="margin-top:40px; margin-bottom: 20px; font-size: 18px;">⚔️ Дуелі та Виклики</h3>
+        <button class="secondary" onclick="if(typeof openCreateDuelModal === 'function') openCreateDuelModal()" style="width: 100%; border-color: #ff2d55; color: #ff2d55; margin-bottom: 15px;">+ Кинути виклик другу</button>
+        <div id="duels-container" class="reveal" style="display: grid; grid-template-columns: 1fr; gap: 15px;"></div>
+
+        <h3 class="reveal" style="margin-top:40px; margin-bottom: 20px; font-size: 18px;" data-i18n="title_achievements">Ваші Досягнення</h3>
+        <div id="achievements-container" class="reveal" style="display: grid; grid-template-columns: 1fr; gap: 15px;"></div>
+    </div>
+
+    <div id="recipe-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="recipe-title" style="margin-top:0; color: #bf5af2; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; font-size: 22px;">Рецепт</h3>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 16px; border: 1px solid var(--border-color);">
+                <div style="text-align: center;"><div style="color: var(--hint-color); font-size: 11px; text-transform: uppercase;">Ккал</div><div style="font-weight: bold; font-size: 16px; margin-top: 4px;" id="recipe-cal">0</div></div>
+                <div style="text-align: center;"><div style="color: var(--hint-color); font-size: 11px; text-transform: uppercase;">Білки</div><div style="font-weight: bold; font-size: 16px; margin-top: 4px;" id="recipe-p">0</div></div>
+                <div style="text-align: center;"><div style="color: var(--hint-color); font-size: 11px; text-transform: uppercase;">Жири</div><div style="font-weight: bold; font-size: 16px; margin-top: 4px;" id="recipe-f">0</div></div>
+                <div style="text-align: center;"><div style="color: var(--hint-color); font-size: 11px; text-transform: uppercase;">Вугл.</div><div style="font-weight: bold; font-size: 16px; margin-top: 4px;" id="recipe-c">0</div></div>
+            </div>
+            <div id="recipe-text" style="font-size: 15px; color: var(--text-color); white-space: pre-wrap; line-height: 1.6; margin-bottom: 30px;"></div>
+            <button id="btn-eat-recipe" onclick="if(typeof eatRecipe === 'function') eatRecipe()" style="margin-bottom: 10px; background: var(--text-color); color: #000;" data-i18n="btn_eat_recipe">Записати в щоденник</button>
+            <button class="secondary delete" style="width: 100%; border: none;" onclick="closeModal('recipe-modal')" data-i18n="btn_close">Закрити</button>
+        </div>
+    </div>
+
+    <div id="edit-profile-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin-top:0; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; font-size: 22px;" data-i18n="title_edit_profile">Редагувати дані</h3>
+            <div style="display: flex; gap: 15px;">
+                <div style="flex: 1;"><label data-i18n="label_height">Зріст (см)</label><input type="number" id="edit-height"></div>
+                <div style="flex: 1;"><label data-i18n="label_age">Вік</label><input type="number" id="edit-age"></div>
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <div style="flex: 1;"><label data-i18n="label_weight">Вага</label><input type="number" id="edit-weight" step="0.1"></div>
+                <div style="flex: 1;"><label data-i18n="label_target_weight">Цільова</label><input type="number" id="edit-target-weight" step="0.1"></div>
+            </div>
+            <label data-i18n="label_activity">Рівень активності</label>
+            <select id="edit-activity">
+                <option value="sedentary" data-i18n="act_sedentary">Сидячий</option>
+                <option value="light" data-i18n="act_light">Легкий</option>
+                <option value="medium" data-i18n="act_medium">Середній</option>
+                <option value="active" data-i18n="act_active">Високий</option>
+                <option value="very_active" data-i18n="act_very_active">Дуже високий</option>
+            </select>
+
+            <div id="edit-competition-container" style="display: none; background: rgba(212, 175, 55, 0.05); padding: 15px; border-radius: 12px; border: 1px dashed rgba(212, 175, 55, 0.3); margin-top: 15px;">
+                <label style="color: var(--accent-gold); margin-top: 0;" data-i18n="comp_sport_label">Ваш вид спорту</label>
+                <input type="text" id="edit_comp_sport">
+                <label style="color: var(--accent-gold);" data-i18n="comp_date_label">Дата змагань</label>
+                <input type="date" id="edit_comp_date">
+            </div>
+
+            <div id="edit-cycle-container" style="display: none; background: rgba(255, 45, 85, 0.05); padding: 15px; border-radius: 12px; border: 1px dashed rgba(255, 45, 85, 0.3); margin-top: 15px;">
+                <label style="color: #ff2d55; margin-top: 0;" data-i18n="cycle_start_label">Перший день циклу</label>
+                <input type="date" id="edit_cycle_start_date">
+                <label style="color: #ff2d55;" data-i18n="cycle_length_label">Тривалість (днів)</label>
+                <input type="number" id="edit_cycle_length">
+            </div>
+
+            <button onclick="submitEditProfile()" style="margin-top: 30px;" data-i18n="btn_save">Зберегти зміни</button>
+            <button class="secondary delete" style="width: 100%; border: none; margin-top: 10px;" onclick="closeModal('edit-profile-modal')" data-i18n="btn_cancel">Скасувати</button>
+        </div>
+    </div>
+
+    <div id="workout-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modal-title" style="margin-top:0; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; font-size: 22px;">Назва вправи</h3>
+            <div id="log-form" class="log-container active">
+                <div style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 16px; margin-bottom: 25px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-size: 11px; color: var(--hint-color); text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="target_reps">Ціль:</span>
+                            <div id="modal-target" style="font-weight: 700; font-size: 18px; margin-top: 4px; color: var(--btn-color);">...</div>
+                        </div>
+                        <div id="modal-progress" style="font-size: 13px; color: var(--text-color); font-weight: 600; display: none;">Підхід: 0/0</div>
+                    </div>
+                </div>
+
+                <div id="input-strength" class="dynamic-input">
+                    <div style="display: flex; gap: 15px;">
+                        <div style="flex: 1;"><label data-i18n="label_weight_kg">Вага (кг)</label><input type="number" id="set-weight" inputmode="decimal"></div>
+                        <div style="flex: 1;"><label data-i18n="label_reps">Повторення</label><input type="number" id="set-reps" inputmode="numeric"></div>
+                    </div>
+                </div>
+                <div id="input-cardio" class="dynamic-input" style="display: none;">
+                    <div style="display: flex; gap: 15px;">
+                        <div style="flex: 1;"><label data-i18n="label_duration">Час (хв)</label><input type="number" id="set-duration" inputmode="decimal"></div>
+                        <div style="flex: 1;"><label data-i18n="label_distance">Відстань (км)</label><input type="number" id="set-distance" inputmode="decimal"></div>
+                    </div>
+                </div>
+                <div id="input-warmup" class="dynamic-input" style="display: none;">
+                    <p style="text-align: center; color: var(--hint-color); font-size: 15px; margin-bottom: 10px;" data-i18n="desc_warmup">Ця вправа не потребує запису ваги.</p>
+                </div>
+
+                <button onclick="saveSet()" style="margin-top: 30px;" id="btn-save-set" data-i18n="btn_save_set">Записати і Відпочити</button>
+                <button class="secondary delete" style="width: 100%; border: none; margin-top: 10px;" onclick="closeModal('workout-modal')" data-i18n="btn_cancel">Скасувати</button>
+            </div>
+
+            <div id="timer-view" class="timer-container" style="text-align: center; padding: 20px 0;">
+                <p style="color: var(--hint-color); margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="timer_title">Час відновлення</p>
+                <div class="timer-display" id="timer-text" style="font-size: 80px; font-weight: 900; font-family: 'Space Grotesk', sans-serif; line-height: 1; color: var(--btn-color); margin-bottom: 30px;">01:30</div>
+                <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 20px;">
+                    <button style="width: auto; padding: 12px 24px; margin: 0; background: rgba(255,255,255,0.05); color: var(--text-color);" onclick="adjustTimer(-15)">-15s</button>
+                    <button style="width: auto; padding: 12px 24px; margin: 0; background: rgba(255,255,255,0.05); color: var(--text-color);" onclick="adjustTimer(30)">+30s</button>
+                </div>
+                <button class="secondary" onclick="skipTimer()" data-i18n="btn_skip_timer">Пропустити таймер</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-food-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin-top:0; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; font-size: 22px;" data-i18n="title_edit_food">Редагувати запис</h3>
+            <input type="hidden" id="edit-food-id">
+            <label data-i18n="label_dish_name">Назва страви</label>
+            <input type="text" id="edit-food-name">
+            <div style="display: flex; gap: 15px;">
+                <div style="flex: 1;"><label data-i18n="label_weight_g">Вага (г)</label><input type="number" id="edit-food-weight"></div>
+                <div style="flex: 1;"><label data-i18n="label_cals">Калорії</label><input type="number" id="edit-food-cal"></div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;"><label data-i18n="label_p">Білки</label><input type="number" id="edit-food-prot"></div>
+                <div style="flex: 1;"><label data-i18n="label_f">Жири</label><input type="number" id="edit-food-fat"></div>
+                <div style="flex: 1;"><label data-i18n="label_c">Вугл.</label><input type="number" id="edit-food-carb"></div>
+            </div>
+
+            <div style="margin-top: 25px; padding: 20px; background: rgba(10, 132, 255, 0.05); border: 1px dashed rgba(10, 132, 255, 0.3); border-radius: 16px;">
+                <h4 style="margin-top: 0; color: var(--client-blue); font-size: 15px;">✨ ШІ-Перерахунок</h4>
+                <p style="font-size: 13px; color: var(--hint-color); margin-top: 0;">ШІ помилився? Напишіть, що змінити.</p>
+                <input type="text" id="edit-food-correction" placeholder="Напр: 'Це було 200г свинини'" style="border-bottom-color: rgba(10, 132, 255, 0.3);">
+                <button id="btn-recalc-food" class="secondary" onclick="if(typeof recalculateFoodAI === 'function') recalculateFoodAI()" style="margin-top: 15px; border-color: rgba(10, 132, 255, 0.3); color: var(--client-blue);">✨ Перерахувати</button>
+            </div>
+
+            <button onclick="if(typeof submitEditFood === 'function') submitEditFood()" style="margin-top: 30px;" data-i18n="btn_save">Зберегти зміни</button>
+            <button class="secondary delete" style="width: 100%; border: none; margin-top: 10px;" onclick="closeModal('edit-food-modal')" data-i18n="btn_cancel">Скасувати</button>
+        </div>
+    </div>
+
+    <div id="edit-exercise-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="edit-ex-title" style="margin-top:0; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; font-size: 22px;">Редагувати вправу</h3>
+            <input type="hidden" id="edit-ex-day">
+            <input type="hidden" id="edit-ex-index">
+            <label data-i18n="label_ex_name">Назва вправи</label>
+            <input type="text" id="edit-ex-name">
+            <div style="display: flex; gap: 15px;">
+                <div style="flex: 1;"><label data-i18n="label_sets">Підходи</label><input type="text" id="edit-ex-sets"></div>
+                <div style="flex: 1;"><label data-i18n="label_reps_time">Повторення</label><input type="text" id="edit-ex-reps"></div>
+            </div>
+            <div style="display: flex; gap: 15px; margin-top: 30px;">
+                <button onclick="if(typeof submitEditExercise === 'function') submitEditExercise()" style="margin-top: 0; flex: 3;" data-i18n="btn_save">Зберегти</button>
+                <button id="btn-delete-ex" class="secondary delete" onclick="if(typeof deleteExercise === 'function') deleteExercise()" style="flex: 1; height: auto; margin-top: 0; border: 1px solid rgba(255,45,85,0.3);">🗑</button>
+            </div>
+            <button class="secondary delete" style="width: 100%; border: none; margin-top: 10px;" onclick="closeModal('edit-exercise-modal')" data-i18n="btn_cancel">Скасувати</button>
+        </div>
+    </div>
+
+    <div id="exercise-info-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="info-modal-title" style="margin-top:0; color: var(--text-color); font-size: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">Вправа</h3>
+            <div style="margin-bottom: 20px; margin-top: 20px;">
+                <span style="font-size: 12px; color: var(--hint-color); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="target_muscles">Цільові м'язи:</span>
+                <div id="info-modal-muscles" style="font-size: 16px; color: var(--btn-color); margin-top: 4px; font-weight: bold;">...</div>
+            </div>
+            <div style="margin-bottom: 30px; background: rgba(255,255,255,0.02); padding: 20px; border-radius: 16px; border: 1px solid var(--border-color);">
+                <span style="font-size: 12px; color: var(--hint-color); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="instruction">Інструкція:</span>
+                <div id="info-modal-instruction" style="font-size: 15px; color: var(--text-color); margin-top: 10px; line-height: 1.6; white-space: pre-wrap;">...</div>
+            </div>
+            <a id="btn-youtube-link" href="#" target="_blank" style="display: none; background: transparent; color: #ff0000; border: 1px solid rgba(255,0,0,0.3); text-align: center; padding: 16px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 15px; margin-bottom: 15px; text-transform: uppercase;">Дивитися техніку (YouTube)</a>
+            <button class="secondary delete" style="width: 100%; border: none;" onclick="closeModal('exercise-info-modal')" data-i18n="btn_close">Закрити</button>
+        </div>
+    </div>
+
+    <div id="quick-comp-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin-top:0; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; font-size: 22px;" data-i18n="title_comp_settings">Налаштування</h3>
+            <label data-i18n="comp_sport_label">Вид спорту</label>
+            <input type="text" id="quick-comp-sport" placeholder="Напр: Пауерліфтинг">
+            <label data-i18n="comp_date_label">Дата змагань</label>
+            <input type="date" id="quick-comp-date">
+
+            <button id="btn-save-quick-comp" onclick="saveQuickComp()" style="margin-top: 30px;" data-i18n="btn_save">Зберегти</button>
+            <button onclick="clearCompetition()" class="secondary" style="margin-top: 15px; border-color: rgba(255, 45, 85, 0.3); color: var(--danger);" data-i18n="btn_cancel_comp">Скасувати підготовку</button>
+            <button class="secondary delete" style="width: 100%; border: none; margin-top: 5px;" onclick="closeModal('quick-comp-modal')" data-i18n="btn_close">Закрити</button>
+        </div>
+    </div>
+
+    <div id="create-duel-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin-top:0; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; font-size: 22px;">⚔️ Кинути виклик</h3>
+            <p style="font-size: 14px; color: var(--hint-color); margin-bottom: 20px;">Оберіть тип змагання і зробіть ставку. Переможець забирає все!</p>
+
+            <label>Тип дуелі</label>
+            <select id="duel-type">
+                <option value="workouts">Більше виконаних тренувань</option>
+                <option value="calories">Хто спалить більше калорій</option>
+                <option value="streak">Хто довше протримає Стрік 🔥</option>
+            </select>
+
+            <div style="display: flex; gap: 15px;">
+                <div style="flex: 1;">
+                    <label>Ставка (EXP)</label>
+                    <input type="number" id="duel-bet" value="100" step="50" min="50">
+                </div>
+                <div style="flex: 1;">
+                    <label>Тривалість (днів)</label>
+                    <input type="number" id="duel-days" value="3" min="1" max="30">
+                </div>
+            </div>
+
+            <button onclick="if(typeof submitDuel === 'function') submitDuel()" style="margin-top: 30px; background: #ff2d55; color: #fff;">Згенерувати посилання-виклик</button>
+            <button class="secondary delete" style="width: 100%; border: none; margin-top: 10px;" onclick="closeModal('create-duel-modal')">Скасувати</button>
+        </div>
+    </div>
+
+    <div id="workout-summary-modal" class="modal-overlay">
+        <div class="modal-content" style="background: var(--bg-color); max-height: 95vh; padding: 20px;">
+            <h2 style="text-align: center; margin-top: 0; color: var(--btn-color);">Тренування Завершено!</h2>
+
+            <div id="shareable-card" style="background: #0f0f0f; border: 2px solid var(--btn-color); border-radius: 24px; padding: 30px 20px; position: relative; overflow: hidden; margin-bottom: 20px;">
+                <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: var(--btn-color); filter: blur(80px); opacity: 0.3; border-radius: 50%;"></div>
+                <div style="position: absolute; bottom: -50px; left: -50px; width: 150px; height: 150px; background: var(--accent-gold); filter: blur(80px); opacity: 0.2; border-radius: 50%;"></div>
+
+                <div style="text-align: center; position: relative; z-index: 2;">
+                    <h3 style="font-size: 28px; font-weight: 900; margin-bottom: 5px; font-family: 'Space Grotesk', sans-serif;">FITNESS HUB</h3>
+                    <p style="color: var(--hint-color); font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 30px;">Тренування виконано</p>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px;">
+                        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size: 28px; font-weight: 900; color: var(--btn-color); font-family: 'Space Grotesk', sans-serif;" id="sum-volume">0</div>
+                            <div style="font-size: 11px; color: var(--hint-color); text-transform: uppercase;">Тоннаж (кг)</div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size: 28px; font-weight: 900; color: #ff9500; font-family: 'Space Grotesk', sans-serif;" id="sum-calories">0</div>
+                            <div style="font-size: 11px; color: var(--hint-color); text-transform: uppercase;">Ккал спалено</div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size: 24px; font-weight: 900; color: var(--text-color); font-family: 'Space Grotesk', sans-serif;" id="sum-time">0</div>
+                            <div style="font-size: 11px; color: var(--hint-color); text-transform: uppercase;">Підходів</div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size: 24px; font-weight: 900; color: var(--accent-gold); font-family: 'Space Grotesk', sans-serif;" id="sum-streak">0</div>
+                            <div style="font-size: 11px; color: var(--hint-color); text-transform: uppercase;">Стрік 🔥</div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 16px; border: 1px dashed var(--border-color);">
+                        <div style="text-align: left;">
+                            <div style="font-size: 12px; color: var(--text-color); font-weight: bold;">Приєднуйся до команди!</div>
+                            <div style="font-size: 10px; color: var(--hint-color); margin-top: 4px;">Скануй QR, щоб почати</div>
+                        </div>
+                        <div id="share-qr-code" style="background: #fff; padding: 4px; border-radius: 8px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <img id="result-image-preview" style="display: none; width: 100%; max-width: 100%; border-radius: 24px; box-shadow: 0 0 30px rgba(0, 234, 102, 0.2); margin-bottom: 20px; -webkit-touch-callout: default;" />
+
+            <button id="btn-share-instagram" onclick="if(typeof shareWorkoutResult === 'function') shareWorkoutResult()" style="background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); color: #fff; font-size: 16px; margin-top: 10px; border: none; box-shadow: 0 4px 15px rgba(220, 39, 67, 0.4);">📸 Поділитися результатом</button>
+            <button class="secondary delete" style="width: 100%; border: none; margin-top: 15px;" onclick="closeModal('workout-summary-modal')" data-i18n="btn_close">Закрити</button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav" id="bottom-nav" style="display:none;">
+        <div class="nav-item" onclick="navTo('profile-view', this)">
+            <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
+            <span class="nav-label" data-i18n="nav_profile" style="font-size: 10px; margin-bottom: 0;">Профіль</span>
+        </div>
+        <div class="nav-item active" onclick="navTo('dashboard-view', this)">
+            <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg></span>
+            <span class="nav-label" data-i18n="nav_plan" style="font-size: 10px; margin-bottom: 0;">План</span>
+        </div>
+        <div class="nav-item" id="nav-cycle-btn" style="display: none;" onclick="navTo('cycle-view', this)">
+            <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg></span>
+            <span class="nav-label" data-i18n="nav_cycle" style="font-size: 10px; margin-bottom: 0;">Цикл</span>
+        </div>
+        <div class="nav-item" onclick="navTo('nutrition-view', this)">
+            <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg></span>
+            <span class="nav-label" data-i18n="nav_food" style="font-size: 10px; margin-bottom: 0;">Їжа</span>
+        </div>
+        <div class="nav-item" onclick="navTo('progress-view', this)">
+            <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
+            <span class="nav-label" data-i18n="nav_data" style="font-size: 10px; margin-bottom: 0;">Дані</span>
+        </div>
+        <div class="nav-item" onclick="navTo('coach-view', this)">
+            <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg></span>
+            <span class="nav-label" data-i18n="nav_chat" style="font-size: 10px; margin-bottom: 0;">Чат</span>
+        </div>
+        <div class="nav-item" onclick="navTo('gamification-view', this)">
+            <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg></span>
+            <span class="nav-label" data-i18n="nav_ranks" style="font-size: 10px; margin-bottom: 0;">Ранги</span>
+        </div>
+    </nav>
+
+    <script>
+        let lastRecipeData = null;
+        async function generateFridgeRecipe() {
+            const ingredients = document.getElementById('fridge-ingredients').value.trim();
+            if (!ingredients) return;
+            const btn = document.getElementById('btn-fridge');
+            btn.disabled = true; btn.innerText = "⏳...";
+            try {
+                const res = await fetch('/api/generate_recipe', {
+                    method: 'POST', headers: {'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true'},
+                    body: JSON.stringify({ user_id: userId, ingredients: ingredients })
+                });
+                const data = await res.json();
+                if (data.status === 'success' && data.data) {
+                    lastRecipeData = data.data;
+                    document.getElementById('recipe-title').innerText = data.data.dish_name;
+                    document.getElementById('recipe-cal').innerText = data.data.calories;
+                    document.getElementById('recipe-p').innerText = data.data.protein;
+                    document.getElementById('recipe-f').innerText = data.data.fats;
+                    document.getElementById('recipe-c').innerText = data.data.carbs;
+                    document.getElementById('recipe-text').innerText = data.data.recipe_text;
+                    document.getElementById('recipe-modal').classList.add('active');
+                }
+            } catch (e) { } finally {
+                btn.disabled = false; btn.innerText = loc('btn_fridge_gen', "Придумати рецепт");
+                document.getElementById('fridge-ingredients').value = '';
+            }
+        }
+
+        async function eatRecipe() {
+            if(!lastRecipeData) return;
+            await fetch('/api/log_nutrition', {
+                method: 'POST', headers: {'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true'},
+                body: JSON.stringify({ user_id: userId, dish_name: lastRecipeData.dish_name + ' 🧑‍🍳', calories: lastRecipeData.calories, protein: lastRecipeData.protein, fats: lastRecipeData.fats, carbs: lastRecipeData.carbs, weight_g: 0 })
+            });
+            closeModal('recipe-modal');
+            if(typeof loadNutrition === 'function') loadNutrition();
+            if(typeof loadGamification === 'function') loadGamification();
+            if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+    </script>
+
+    <script src="/static/js/anatomy/bodyFront.js?v=2" defer></script>
+    <script src="/static/js/anatomy/bodyBack.js?v=2" defer></script>
+    <script src="/static/js/anatomy/bodyFemaleFront.js?v=2" defer></script>
+    <script src="/static/js/anatomy/bodyFemaleBack.js?v=2" defer></script>
+    <script src="/static/js/anatomy/anatomy_mapper.js?v=2" defer></script>
+
+    <script src="/static/js/animations.js?v=1" defer></script>
+
+    <script src="/static/js/client.js?v=47" defer></script>
+    <script src="/static/js/client_tracking.js?v=47" defer></script>
+
+</body>
+</html>

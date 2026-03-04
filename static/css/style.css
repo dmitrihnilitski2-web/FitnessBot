@@ -1,0 +1,573 @@
+/* =========================================================
+   FITNESS HUB PRO | ПРЕМІУМ ДИЗАЙН (Awwwards Style)
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;700;900&display=swap');
+
+:root {
+    /* Колірна палітра: Глибокий чорний та Неоновий Смарагд */
+    --bg-color: #030303;
+    --card-bg: rgba(20, 20, 20, 0.6);
+    --text-color: #ffffff;
+    --hint-color: #888888;
+
+    /* Акценти */
+    --btn-color: #00ea66; /* Неоновий зелений */
+    --btn-text: #000000;
+    --accent-gold: #d4af37;
+    --danger: #ff2d55;
+    --success: #00ea66;
+    --client-blue: #0a84ff;
+    --warning: #ffd60a;
+
+    /* Інтерфейс */
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(255, 255, 255, 0.2);
+    --glass-blur: blur(16px);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.5;
+    overflow-x: hidden;
+    /* Кастомний скроллбар для десктопу */
+    scrollbar-width: thin;
+    scrollbar-color: var(--hint-color) var(--bg-color);
+}
+
+/* =========================================================
+   ТИПОГРАФІКА
+   ========================================================= */
+h1, h2, h3, h4 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 12px;
+}
+
+h2 {
+    font-size: 32px;
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 24px;
+}
+
+h3 {
+    font-size: 20px;
+    margin-bottom: 16px;
+}
+
+/* =========================================================
+   БАЗОВІ КОМПОНЕНТИ (Картки та Блоки)
+   ========================================================= */
+.view {
+    display: none;
+    padding: 24px;
+    animation: fadeIn 0.4s ease forwards;
+}
+
+.view.active {
+    display: block;
+}
+
+/* Картки у стилі Glassmorphism */
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 16px;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease;
+}
+
+.card:active {
+    transform: scale(0.98);
+}
+
+/* =========================================================
+   ФОРМИ ТА КНОПКИ
+   ========================================================= */
+label {
+    display: block;
+    margin-top: 16px;
+    margin-bottom: 6px;
+    color: var(--hint-color);
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 16px 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-color);
+    font-size: 16px;
+    font-family: 'Inter', sans-serif;
+    border-radius: 0;
+    transition: border-color 0.3s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-bottom: 1px solid var(--btn-color);
+}
+
+input::placeholder, textarea::placeholder {
+    color: rgba(255,255,255,0.2);
+}
+
+button {
+    width: 100%;
+    padding: 16px;
+    background: var(--btn-color);
+    color: var(--btn-text);
+    border: none;
+    border-radius: 50px; /* Pill shape */
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Space Grotesk', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    margin-top: 24px;
+    transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+}
+
+button:active {
+    transform: scale(0.96);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+button.secondary {
+    background: transparent;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+button.delete {
+    background: rgba(255, 45, 85, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(255, 45, 85, 0.2);
+}
+
+/* =========================================================
+   НАВІГАЦІЯ (Bottom Bar)
+   ========================================================= */
+.bottom-nav {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 400px;
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-color);
+    border-radius: 30px;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 5px;
+    z-index: 1000;
+}
+
+.nav-item {
+    text-align: center;
+    color: var(--hint-color);
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    flex: 1;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.nav-item span {
+    display: block;
+    font-size: 20px;
+    margin-bottom: 4px;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-item.active {
+    color: var(--btn-color);
+}
+
+.nav-item.active span {
+    transform: translateY(-4px) scale(1.1);
+}
+
+/* =========================================================
+   МОДАЛЬНІ ВІКНА
+   ========================================================= */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: #0f0f0f;
+    width: 100%;
+    border-radius: 30px 30px 0 0;
+    padding: 30px 24px 40px;
+    border-top: 1px solid var(--border-color);
+    transform: translateY(100%);
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-overlay.active .modal-content {
+    transform: translateY(0);
+}
+
+/* =========================================================
+   СПЕЦИФІЧНІ ЕЛЕМЕНТИ ДОДАТКУ
+   ========================================================= */
+
+/* Тренування */
+.day-tabs {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    scrollbar-width: none;
+}
+.day-tabs::-webkit-scrollbar { display: none; }
+
+.day-tab {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 30px;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--hint-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.day-tab.active {
+    background: var(--text-color);
+    color: #000;
+    border-color: var(--text-color);
+}
+
+.ex-row {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    border-radius: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.3s ease;
+}
+.ex-row:active {
+    background: rgba(255,255,255,0.05);
+}
+
+/* Відображення виконаних вправ */
+.ex-completed {
+    opacity: 0.5;
+    border-color: var(--success);
+}
+
+/* Закреслення тексту для виконаних вправ */
+.ex-completed .ex-title-text,
+.ex-completed .ex-sub-text {
+    text-decoration: line-through;
+}
+
+.ex-completed .ex-title-text {
+    color: var(--success);
+}
+
+/* Їжа та Прогрес-бари */
+.nutri-grid {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+}
+.nutri-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 12px;
+}
+.progress-circle {
+    width: 60px;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+.progress-circle-fill {
+    height: 100%;
+    background: var(--btn-color);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Range Sliders */
+input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    background: transparent;
+    padding: 10px 0;
+    border: none;
+}
+input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+}
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: var(--btn-color);
+    margin-top: -8px;
+    box-shadow: 0 0 10px rgba(0, 234, 102, 0.5);
+}
+
+/* Water Tracker */
+.water-glass {
+    width: 35px; height: 45px;
+    border: 1px solid rgba(10, 132, 255, 0.3);
+    border-radius: 4px 4px 10px 10px;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    background: transparent;
+}
+.water-glass.filled {
+    background: rgba(10, 132, 255, 0.8);
+    box-shadow: 0 0 15px rgba(10, 132, 255, 0.4);
+    border-color: #0a84ff;
+}
+
+/* Статистика профілю */
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+.profile-stat {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    border-radius: 20px;
+    text-align: center;
+}
+.stat-value {
+    font-size: 24px;
+    font-weight: 900;
+    font-family: 'Space Grotesk', sans-serif;
+    margin-bottom: 4px;
+}
+
+/* Чіпи симптомів (Жіночий цикл) */
+.symptom-chip {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+}
+.symptom-chip.active {
+    background: var(--text-color) !important;
+    color: #000 !important;
+    border-color: var(--text-color) !important;
+    transform: scale(1.05);
+    font-weight: 700;
+    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
+}
+
+/* =========================================================
+   ГЕЙМІФІКАЦІЯ ТА ДОСЯГНЕННЯ (Нові стилі)
+   ========================================================= */
+.achieve-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 4px 14px;
+    transition: all 0.4s ease;
+}
+
+/* Стан розблокованого досягнення */
+.achieve-card.unlocked {
+    background: rgba(212, 175, 55, 0.05);
+    border-color: rgba(212, 175, 55, 0.3);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.08);
+}
+
+.achieve-icon {
+    grid-column: 1;
+    grid-row: 1 / 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    filter: grayscale(100%) opacity(0.3);
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.achieve-card.unlocked .achieve-icon {
+    filter: none;
+    transform: scale(1.15) translateY(-2px);
+    text-shadow: 0 4px 15px rgba(212, 175, 55, 0.5);
+}
+
+.achieve-title {
+    grid-column: 2;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-color);
+}
+
+.achieve-desc {
+    grid-column: 2;
+    font-size: 12px;
+    color: var(--hint-color);
+    margin-bottom: 6px;
+}
+
+.achieve-progress-bg {
+    grid-column: 2;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.achieve-progress-fill {
+    height: 100%;
+    background: var(--accent-gold);
+    border-radius: 4px;
+    transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.achieve-progress-text {
+    grid-column: 2;
+    font-size: 11px;
+    color: var(--hint-color);
+    text-align: right;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.achieve-card.unlocked .achieve-progress-text {
+    color: var(--accent-gold);
+}
+
+/* =========================================================
+   КІНЕМАТИКА ТА АНІМАЦІЇ (Для animations.js)
+   ========================================================= */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Класи для плавної появи елементів при скролі */
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* =========================================================
+   КАСТОМНИЙ КУРСОР (Для Desktop)
+   ========================================================= */
+@media (pointer: fine) {
+    body {
+        cursor: none;
+    }
+    #custom-cursor {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 12px;
+        height: 12px;
+        background-color: var(--btn-color);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 9999;
+        transform: translate(-50%, -50%);
+        transition: width 0.3s ease, height 0.3s ease, background-color 0.3s ease, mix-blend-mode 0.3s ease;
+        box-shadow: 0 0 10px var(--btn-color);
+    }
+    #custom-cursor.hovered {
+        width: 40px;
+        height: 40px;
+        background-color: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(4px);
+        box-shadow: none;
+        border: 1px solid rgba(255,255,255,0.5);
+    }
+}
+
+/* Loader */
+.loader-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top: 3px solid var(--btn-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
